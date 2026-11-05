@@ -31,7 +31,6 @@ int izveidotKavu() {
     return kava.size();
 }
 int sajauktKavu(int n) {
-    srand(time(0));
     for (int i = 0; i < n; i++) {
         int j = rand() % n;
         swap(kava[i], kava[j]);
@@ -45,7 +44,6 @@ Karts vilktKarti(){
     }
     Karts karte = kava.back();
     kava.pop_back();
-    cout << "Vilktā karte: " << karte.nosakums << " " << karte.masts << endl;
     return karte;
 }
 
@@ -62,12 +60,15 @@ int aprekinatSummu(const vector<Karts>& roka) {
     }
     return summa;
 }
+
 string simbols(const string& masts) {
     if (masts == "Pīķis")   return "♠";
     if (masts == "Kreicis") return "♣";
     if (masts == "Ercens")  return "♥";
     return "♦";
 }
+
+// Uzzīmē visas rokas kārtis blakus. Ja slept = true, otrā kārts ir apslēpta.
 void zimetRoku(const vector<Karts>& roka, bool slept = false) {
     for (int rinda = 0; rinda < 5; rinda++) {
         for (int i = 0; i < roka.size(); i++) {
@@ -104,6 +105,7 @@ void zimetGaldu(bool sleptDatoru){
     cout << "Tava summa: " << aprekinatSummu(speletajaRoka) << endl;
     cout << endl;
 }
+
 int speletajaGajiens() {
     zimetGaldu(true);
     cout << "1. Vilkt karti" << endl;
@@ -137,25 +139,48 @@ int noteiktUzvaretaju() {
     int speletajaSumma = aprekinatSummu(speletajaRoka);
     int datoraSumma = aprekinatSummu(datoraRoka);
     if (speletajaSumma > datoraSumma) {
-        cout << "Speletajs uzvare!" << endl;
+        cout << "Tu uzvareji!" << endl;
+        return 1;
     } else if (speletajaSumma < datoraSumma) {
         cout << "Dators uzvareja!" << endl;
+        return -1;
     } else {
         cout << "Neizskirts!" << endl;
+        return 0;
     }
-    return 0;
 }
-int main() {
-    system("chcp 65001 > nul");
-    srand(time(0));
+
+// Viena spēles partija. Atgriež 1 = uzvara, -1 = zaudējums, 0 = neizšķirts
+int spele() {
+    // Notīra visu no iepriekšējās partijas
+    kava.clear();
+    speletajaRoka.clear();
+    datoraRoka.clear();
+
     int n = izveidotKavu();
     sajauktKavu(n);
 
+    speletajaRoka.push_back(vilktKarti());
+    speletajaRoka.push_back(vilktKarti());
+    datoraRoka.push_back(vilktKarti());
+    datoraRoka.push_back(vilktKarti());
 
-    speletajaRoka.push_back(vilktKarti());
-    speletajaRoka.push_back(vilktKarti());
-    datoraRoka.push_back(vilktKarti());
-    datoraRoka.push_back(vilktKarti());
+    // Pārbauda, vai kādam jau ar pirmajām divām kārtīm ir 21 (acīte)
+    int speletajaSumma = aprekinatSummu(speletajaRoka);
+    int datoraSumma = aprekinatSummu(datoraRoka);
+    if (speletajaSumma == 21 || datoraSumma == 21) {
+        zimetGaldu(false);
+        if (speletajaSumma == 21 && datoraSumma == 21) {
+            cout << "Abiem 21! Neizskirts!" << endl;
+            return 0;
+        } else if (speletajaSumma == 21) {
+            cout << "ACITE! Tev 21. Tu uzvareji!" << endl;
+            return 1;
+        } else {
+            cout << "Datoram acite (21). Tu zaudeji!" << endl;
+            return -1;
+        }
+    }
 
     while (true) {
         int rezultats = speletajaGajiens();
@@ -165,10 +190,15 @@ int main() {
         if (aprekinatSummu(speletajaRoka) > 21) {
             zimetGaldu(false);
             cout << "Parsniegts 21. Tu zaudeji!" << endl;
-            return 0;
+            return -1;
+        }
+        if (aprekinatSummu(speletajaRoka) == 21) {   // 21 -> spēle beidzas uzreiz
+            zimetGaldu(false);
+            cout << "Tev 21! Tu uzvareji!" << endl;
+            return 1;
         }
     }
- 
+
     while (true) {
         int rezultats = datoraGajiens();
         if (rezultats == -1) {
@@ -177,10 +207,38 @@ int main() {
         if (aprekinatSummu(datoraRoka) > 21) {
             zimetGaldu(false);
             cout << "Dators parsniedza 21. Tu uzvareji!" << endl;
-            return 0;
+            return 1;
         }
     }
     zimetGaldu(false);
-    noteiktUzvaretaju();
+    if (aprekinatSummu(datoraRoka) == 21) {
+        cout << "Datoram 21! Tu zaudeji!" << endl;
+        return -1;
+    }
+    return noteiktUzvaretaju();
+}
+
+int main() {
+    system("chcp 65001 > nul");
+    srand(time(0));
+
+    int uzvaras = 0, zaudejumi = 0, neizskirti = 0;
+    char atbilde;
+
+    do {
+        int rezultats = spele();
+        if (rezultats == 1) uzvaras++;
+        else if (rezultats == -1) zaudejumi++;
+        else neizskirti++;
+
+        cout << endl;
+        cout << "Uzvaras: " << uzvaras << "  Zaudejumi: " << zaudejumi
+             << "  Neizskirti: " << neizskirti << endl;
+        cout << "Spelet velreiz? (j/n): ";
+        cin >> atbilde;
+    } while (atbilde == 'j' || atbilde == 'J');
+
+    cout << "Paldies par speli!" << endl;
+    system("pause");
     return 0;
 }
