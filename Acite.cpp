@@ -3,6 +3,7 @@
 #include <string>
 #include <ctime>
 #include <vector>
+#include <conio.h>
 using namespace std;
 
 
@@ -68,13 +69,12 @@ string simbols(const string& masts) {
     return "♦";
 }
 
-// Uzzīmē visas rokas kārtis blakus. Ja slept = true, otrā kārts ir apslēpta.
 void zimetRoku(const vector<Karts>& roka, bool slept = false) {
     for (int rinda = 0; rinda < 5; rinda++) {
         for (int i = 0; i < roka.size(); i++) {
             bool apslepta = slept && i == 1;
             string n = roka[i].nosakums;
-            if (n.size() == 1) n += " ";          // "K " un "10" ir vienā platumā
+            if (n.size() == 1) n += " "; 
             string s = simbols(roka[i].masts);
 
             if (rinda == 0) cout << "┌───────┐ ";
@@ -106,27 +106,44 @@ void zimetGaldu(bool sleptDatoru){
     cout << endl;
 }
 
+void zimetPogas(int izvele) {
+    string vilkt   = "  VILKT KARTI  ";
+    string nevilkt = "    NEVILKT    ";
+    string izcelt = "\033[30;47m";
+    string parastais = "\033[0m";
+
+    cout << "  " << (izvele == 0 ? izcelt : parastais) << "[" << vilkt << "]" << parastais
+         << "     " << (izvele == 1 ? izcelt : parastais) << "[" << nevilkt << "]" << parastais << endl;
+    cout << endl << "  <- -> izvelies, Enter apstiprini (vai spied 1 / 2)" << endl;
+}
+
 int speletajaGajiens() {
-    zimetGaldu(true);
-    cout << "1. Vilkt karti" << endl;
-    cout << "2. Nevilkt" << endl;
-    int izvele;
-    cin >> izvele;
-    if (cin.fail()) {          // ja ievadīts burts, nevis skaitlis
-        cin.clear();
-        cin.ignore(1000, '\n');
+    int izvele = 0; 
+    while (true) {
+        zimetGaldu(true);
+        zimetPogas(izvele);
+
+        int taustins = _getch();
+        if (taustins == 0 || taustins == 224) {   
+            taustins = _getch();
+            if (taustins == 75) izvele = 0;        
+            if (taustins == 77) izvele = 1;        
+        } else if (taustins == 13) {               
+            break;
+        } else if (taustins == '1') {
+            izvele = 0;
+            break;
+        } else if (taustins == '2') {
+            izvele = 1;
+            break;
+        }
+    }
+
+    if (izvele == 0) {
+        speletajaRoka.push_back(vilktKarti());
         return 0;
     }
-    switch (izvele) {
-        case 1:
-            speletajaRoka.push_back(vilktKarti());
-            break;
-        case 2:
-            return -1; // Speletajs beidz gajienu
-        default:
-            break;
-    }
-    return 0;
+    return -1; 
 }
 int datoraGajiens() {
     if (aprekinatSummu(datoraRoka) >= 17) {
@@ -150,9 +167,7 @@ int noteiktUzvaretaju() {
     }
 }
 
-// Viena spēles partija. Atgriež 1 = uzvara, -1 = zaudējums, 0 = neizšķirts
 int spele() {
-    // Notīra visu no iepriekšējās partijas
     kava.clear();
     speletajaRoka.clear();
     datoraRoka.clear();
@@ -165,7 +180,6 @@ int spele() {
     datoraRoka.push_back(vilktKarti());
     datoraRoka.push_back(vilktKarti());
 
-    // Pārbauda, vai kādam jau ar pirmajām divām kārtīm ir 21 (acīte)
     int speletajaSumma = aprekinatSummu(speletajaRoka);
     int datoraSumma = aprekinatSummu(datoraRoka);
     if (speletajaSumma == 21 || datoraSumma == 21) {
@@ -192,7 +206,7 @@ int spele() {
             cout << "Parsniegts 21. Tu zaudeji!" << endl;
             return -1;
         }
-        if (aprekinatSummu(speletajaRoka) == 21) {   // 21 -> spēle beidzas uzreiz
+        if (aprekinatSummu(speletajaRoka) == 21) {  
             zimetGaldu(false);
             cout << "Tev 21! Tu uzvareji!" << endl;
             return 1;
@@ -235,7 +249,7 @@ int main() {
         cout << "Uzvaras: " << uzvaras << "  Zaudejumi: " << zaudejumi
              << "  Neizskirti: " << neizskirti << endl;
         cout << "Spelet velreiz? (j/n): ";
-        cin >> atbilde;
+        atbilde = _getch(); 
     } while (atbilde == 'j' || atbilde == 'J');
 
     cout << "Paldies par speli!" << endl;
